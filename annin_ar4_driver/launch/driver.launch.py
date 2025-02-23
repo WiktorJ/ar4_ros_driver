@@ -7,6 +7,7 @@ from launch import LaunchDescription
 from launch.actions import DeclareLaunchArgument
 from launch.substitutions import LaunchConfiguration
 from launch.substitutions import Command, FindExecutable, PathJoinSubstitution
+from launch.substitutions import TextSubstitution
 
 
 def generate_launch_description():
@@ -15,13 +16,14 @@ def generate_launch_description():
     include_gripper = LaunchConfiguration("include_gripper")
     arduino_serial_port = LaunchConfiguration("arduino_serial_port")
     ar_model_config = LaunchConfiguration("ar_model")
-    tf_prefix = LaunchConfiguration("tf_prefix")
+    log_level = LaunchConfiguration("log_level")
 
     robot_description_content = Command([
         PathJoinSubstitution([FindExecutable(name="xacro")]),
         " ",
-        PathJoinSubstitution(
-            [FindPackageShare("annin_ar4_driver"), "urdf", "ar.urdf.xacro"]),
+        PathJoinSubstitution([
+            FindPackageShare("annin_ar4_driver"), "urdf", "ar.urdf.xacro"
+        ]),
         " ",
         "ar_model:=",
         ar_model_config,
@@ -32,19 +34,20 @@ def generate_launch_description():
         "calibrate:=",
         calibrate,
         " ",
-        "tf_prefix:=",
-        tf_prefix,
-        " ",
         "include_gripper:=",
         include_gripper,
         " ",
         "arduino_serial_port:=",
         arduino_serial_port,
+        " ",
+        "log_level:=",
+        log_level
     ])
     robot_description = {"robot_description": robot_description_content}
 
-    joint_controllers_cfg = PathJoinSubstitution(
-        [FindPackageShare("annin_ar4_driver"), "config", "controllers.yaml"])
+    joint_controllers_cfg = PathJoinSubstitution([
+        FindPackageShare("annin_ar4_driver"), "config", "controllers.yaml"
+    ])
 
     update_rate_config_file = PathJoinSubstitution([
         FindPackageShare("annin_ar4_driver"),
@@ -58,12 +61,11 @@ def generate_launch_description():
         parameters=[
             update_rate_config_file,
             ParameterFile(joint_controllers_cfg, allow_substs=True),
-            {
-                "tf_prefix": tf_prefix
-            },
         ],
         remappings=[('~/robot_description', 'robot_description')],
         output="screen",
+        arguments=['--ros-args', '--log-level',
+                   LaunchConfiguration('log_level')]
     )
 
     spawn_joint_controller = Node(
@@ -75,6 +77,8 @@ def generate_launch_description():
             "/controller_manager",
             "--controller-manager-timeout",
             "60",
+            '--ros-args', '--log-level',
+            LaunchConfiguration('log_level')
         ],
     )
 
@@ -87,6 +91,8 @@ def generate_launch_description():
             "/controller_manager",
             "--controller-manager-timeout",
             "60",
+            '--ros-args', '--log-level',
+            LaunchConfiguration('log_level')
         ],
         condition=IfCondition(include_gripper),
     )
@@ -96,6 +102,8 @@ def generate_launch_description():
         executable="robot_state_publisher",
         output="both",
         parameters=[robot_description],
+        arguments=['--ros-args', '--log-level',
+                   LaunchConfiguration('log_level')]
     )
 
     joint_state_broadcaster = Node(
@@ -107,6 +115,8 @@ def generate_launch_description():
             "/controller_manager",
             "--controller-manager-timeout",
             "60",
+            '--ros-args', '--log-level',
+            LaunchConfiguration('log_level')
         ],
     )
 
@@ -126,12 +136,6 @@ def generate_launch_description():
         ))
     ld.add_action(
         DeclareLaunchArgument(
-            "tf_prefix",
-            default_value="",
-            description="Prefix for AR4 tf_tree",
-        ))
-    ld.add_action(
-        DeclareLaunchArgument(
             "include_gripper",
             default_value="True",
             description="Run the servo gripper",
@@ -148,9 +152,15 @@ def generate_launch_description():
                               default_value="mk3",
                               choices=["mk1", "mk2", "mk3"],
                               description="Model of AR4"))
+    ld.add_action(DeclareLaunchArgument(
+        "log_level",
+        default_value=TextSubstitution(text=str("INFO")),
+        description="Logging level"
+    )),
     ld.add_action(controller_manager_node)
     ld.add_action(spawn_joint_controller)
     ld.add_action(gripper_controller_spawner)
     ld.add_action(robot_state_publisher_node)
     ld.add_action(joint_state_broadcaster)
+
     return ld

@@ -59,7 +59,8 @@ int JOINT_LIMIT_MAX_MK3[] = {170, 90, 52, 180, 105, 180};
 std::map<String, const int*> REST_MOTOR_STEPS;
 const int REST_MOTOR_STEPS_MK1[] = {7555, 2333, 4944, 7049, 2295, 3431};
 const int REST_MOTOR_STEPS_MK2[] = {7555, 2333, 4944, 7049, 2295, 3431};
-const int REST_MOTOR_STEPS_MK3[] = {7555, 2333, 4944, 8960, 2295, 4000};
+// const int REST_MOTOR_STEPS_MK3[] = {7555, 2333, 4944, 8960, 2295, 4000};
+const int REST_MOTOR_STEPS_MK3[] = {7555, 2443, 4627, 9010, 2207, 4000};
 
 enum SM { STATE_TRAJ, STATE_ERR };
 SM STATE = STATE_TRAJ;
@@ -457,6 +458,12 @@ bool moveLimitedAwayFromLimitSwitch(int* calJoints) {
   return moveAwayFromLimitSwitch(limitedJoints);
 }
 
+// TODO:
+//bool doCalibrationRoutine2Stages(String& outputMsg) {
+//  int calJoints[] = {1, 1, 1, 0, 0, 0};
+//  bool calibrationStage1 = doCalibrationRoutine1Stages(outputMsg, calJoints);
+//}
+
 bool doCalibrationRoutine(String& outputMsg) {
   // calibrate all joints
   int calJoints[] = {1, 1, 1, 1, 1, 1};
@@ -498,8 +505,8 @@ bool doCalibrationRoutine(String& outputMsg) {
   unsigned long startTime = millis();
   int curMotorSteps[NUM_JOINTS];
   readMotorSteps(curMotorSteps);
-  while (!AtPosition(REST_MOTOR_STEPS[MODEL], curMotorSteps, 5)) {
-    if (millis() - startTime > 10000) {
+  while (!AtPosition(REST_MOTOR_STEPS[MODEL], curMotorSteps, 20)) {
+    if (millis() - startTime > 20000) {
       outputMsg = "ER: Failed to return to original position.";
       return false;
     }
