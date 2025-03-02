@@ -45,11 +45,13 @@ const float ENC_MULT[] = {10, 10, 10, 10, 5, 10};
 std::map<String, const int*> JOINT_LIMIT_MIN;
 int JOINT_LIMIT_MIN_MK1[] = {-170, -42, -89, -165, -105, -155};
 int JOINT_LIMIT_MIN_MK2[] = {-170, -42, -89, -165, -105, -155};
-int JOINT_LIMIT_MIN_MK3[] = {-170, -42, -89, -180, -105, -180};
+// int JOINT_LIMIT_MIN_MK3[] = {-170, -42, -89, -180, -105, -180};
+int JOINT_LIMIT_MIN_MK3[] = {-170, -44, -83, -181, -101, -180};
 std::map<String, const int*> JOINT_LIMIT_MAX;
 int JOINT_LIMIT_MAX_MK1[] = {170, 90, 52, 165, 105, 155};
 int JOINT_LIMIT_MAX_MK2[] = {170, 90, 52, 165, 105, 155};
-int JOINT_LIMIT_MAX_MK3[] = {170, 90, 52, 180, 105, 180};
+// int JOINT_LIMIT_MAX_MK3[] = {170, 90, 52, 180, 105, 180};
+int JOINT_LIMIT_MAX_MK3[] = {170, 88, 58, 179, 109, 180};
 
 ///////////////////////////////////////////////////////////////////////////////
 // ROS Driver Params
