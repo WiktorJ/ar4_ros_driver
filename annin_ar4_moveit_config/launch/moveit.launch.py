@@ -41,7 +41,7 @@ def generate_launch_description():
     declared_arguments.append(
         DeclareLaunchArgument(
             "tf_prefix",
-            default_value="",
+            default_value="aera_",
             description="Prefix for AR4 tf_tree",
         ))
     declared_arguments.append(

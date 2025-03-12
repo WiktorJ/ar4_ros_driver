@@ -48,7 +48,7 @@ def generate_launch_description():
                                          description="Model of AR4")
     ar_model_config = LaunchConfiguration("ar_model")
     tf_prefix_arg = DeclareLaunchArgument("tf_prefix",
-                                          default_value="",
+                                          default_value="aera_",
                                           description="Prefix for AR4 tf_tree")
     tf_prefix = LaunchConfiguration("tf_prefix")
 
