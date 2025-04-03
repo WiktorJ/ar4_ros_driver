@@ -460,11 +460,136 @@ bool moveLimitedAwayFromLimitSwitch(int* calJoints) {
   return moveAwayFromLimitSwitch(limitedJoints);
 }
 
-// TODO:
-//bool doCalibrationRoutine2Stages(String& outputMsg) {
-//  int calJoints[] = {1, 1, 1, 0, 0, 0};
-//  bool calibrationStage1 = doCalibrationRoutine1Stages(outputMsg, calJoints);
-//}
+bool AtPositionForJoints(const int* targetMotorSteps, const int* currMotorSteps,
+                          const int maxDiff, const int* jointsToCheck) {
+  for (int i = 0; i < NUM_JOINTS; ++i) {
+    // Only check joints we're supposed to check
+    if (jointsToCheck[i]) {
+      int diffEncSteps = targetMotorSteps[i] - currMotorSteps[i];
+      if (abs(diffEncSteps) > maxDiff) {
+        return false;
+      }
+    }
+  }
+  return true;
+}
+
+void MoveToJoints(const int* cmdSteps, int* motorSteps, int* jointsToMove) {
+  setAllMaxSpeeds();
+  for (int i = 0; i < NUM_JOINTS; ++i) {
+    if (jointsToMove[i]) {
+      int diffEncSteps = cmdSteps[i] - motorSteps[i];
+      if (abs(diffEncSteps) > 2) {
+        int diffMotSteps = diffEncSteps * ENC_DIR[i];
+        stepperJoints[i].move(diffMotSteps);
+      }
+    }
+  }
+}
+
+bool returnJointsToOrginalPosition(int* jointsToMove, String& errorMsg, const char* jointGroupName) {
+  unsigned long startTime = millis();
+  int curMotorSteps[NUM_JOINTS];
+  int targetSteps[NUM_JOINTS] = {0};
+
+  // Set target steps only for the joints we're moving
+  readMotorSteps(curMotorSteps);
+  for (int i = 0; i < NUM_JOINTS; ++i) {
+    if (jointsToMove[i]) {
+      targetSteps[i] = REST_MOTOR_STEPS[MODEL][i];
+    } else {
+      // For joints we're not moving, set target to current position
+      targetSteps[i] = curMotorSteps[i];
+    }
+  }
+
+  while (!AtPositionForJoints(targetSteps, curMotorSteps, 20, jointsToMove)) {
+    if (millis() - startTime > 20000) {
+      errorMsg = String("ER: Failed to return ") + jointGroupName + " to rest position.";
+      return false;
+    }
+
+    readMotorSteps(curMotorSteps);
+    MoveToJoints(targetSteps, curMotorSteps, jointsToMove);
+
+    // Run only the specified joints
+    for (int i = 0; i < NUM_JOINTS; ++i) {
+      if (jointsToMove[i]) {
+        safeRun(stepperJoints[i]);
+      }
+    }
+  }
+
+  return true;
+}
+
+bool calibrateJoints(int* jointsToCalibrate, int* calSteps, String& errorMsg, 
+                     const char* jointGroupName) {
+  // Move away from limit switches if needed for this set of joints
+  if (!moveLimitedAwayFromLimitSwitch(jointsToCalibrate)) {
+    errorMsg = String("ER: Failed to move away from limit switches at the start (") + 
+                jointGroupName + ").";
+    return false;
+  }
+  
+  // Move to limit switches for this set of joints
+  if (!moveToLimitSwitches(jointsToCalibrate)) {
+    errorMsg = String("ER: Failed to move to limit switches (") + jointGroupName + ").";
+    return false;
+  }
+  
+  // Record encoder steps and set encoder to range limit
+  for (int i = 0; i < NUM_JOINTS; ++i) {
+    if (jointsToCalibrate[i]) {
+      calSteps[i] = encPos[i].read();
+      encPos[i].write(ENC_RANGE_STEPS[i] * ENC_MAX_AT_ANGLE_MIN[i]);
+    }
+  }
+  
+  // move away from the limit switches a bit so that if the next command
+  // is in the wrong direction, the limit switches will not be run over
+  // immediately and become damaged.
+  if (!moveAwayFromLimitSwitch(jointsToCalibrate)) {
+    errorMsg = String("ER: Failed to move away from limit switches (") + jointGroupName + ").";
+    return false;
+  }
+
+  // restore original max speed
+  for (int i = 0; i < NUM_JOINTS; ++i) {
+    stepperJoints[i].setMaxSpeed(JOINT_MAX_SPEED[i] *
+                                 MOTOR_STEPS_PER_DEG[MODEL][i]);
+  }
+
+  if (!returnJointsToOrginalPosition(jointsToCalibrate, errorMsg, jointGroupName)) {
+    errorMsg = String("ER Failed to return to orginal position (") + jointGroupName + ").";
+    return false;
+  }
+
+  return true;
+}
+
+bool doCalibrationRoutine2Stages(String& outputMsg) {
+    // First calibrate joints 1, 2, 3
+    int calJointsFirst[] = {1, 1, 1, 0, 0, 0};
+    int calSteps[NUM_JOINTS] = {0};
+    
+    if (!calibrateJoints(calJointsFirst, calSteps, outputMsg, "joints 1-3")) {
+        return false;
+    }
+    
+    // Now calibrate joints 4, 5, 6
+    int calJointsSecond[] = {0, 0, 0, 1, 1, 1};
+    
+    if (!calibrateJoints(calJointsSecond, calSteps, outputMsg, "joints 4-6")) {
+        return false;
+    }
+    
+    // Calibration done, send calibration values
+    outputMsg = String("JC") + "A" + calSteps[0] + "B" + calSteps[1] + "C" +
+              calSteps[2] + "D" + calSteps[3] + "E" + calSteps[4] + "F" +
+              calSteps[5];
+    return true;
+}
 
 bool doCalibrationRoutine(String& outputMsg) {
   // calibrate all joints
@@ -653,7 +778,7 @@ void stateTRAJ() {
         Serial.println(msg);
       } else if (function == "JC") {
         String msg;
-        if (!doCalibrationRoutine(msg)) {
+        if (!doCalibrationRoutine2Stages(msg)) {
           for (int i = 0; i < NUM_JOINTS; ++i) {
             stepperJoints[i].setSpeed(0);
           }
