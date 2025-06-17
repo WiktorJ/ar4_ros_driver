@@ -568,8 +568,7 @@ bool calibrateJoints(int* jointsToCalibrate, int* calSteps, String& errorMsg,
   return true;
 }
 
-bool doCalibrationRoutine2Stages(String& outputMsg) {
-    // First calibrate joints 1, 2, 3
+bool doCalibrationRoutine3Stages(String& outputMsg) {
     int calJointsFirst[] = {1, 1, 1, 0, 0, 0};
     int calSteps[NUM_JOINTS] = {0};
     
@@ -577,14 +576,18 @@ bool doCalibrationRoutine2Stages(String& outputMsg) {
         return false;
     }
     
-    // Now calibrate joints 4, 5, 6
-    int calJointsSecond[] = {0, 0, 0, 1, 1, 1};
+    int calJointsSecond[] = {0, 0, 0, 1, 1, 0};
     
-    if (!calibrateJoints(calJointsSecond, calSteps, outputMsg, "joints 4-6")) {
+    if (!calibrateJoints(calJointsSecond, calSteps, outputMsg, "joints 4-5")) {
         return false;
     }
-    
-    // Calibration done, send calibration values
+
+    int calJointsSecond[] = {0, 0, 0, 0, 0, 1};
+
+    if (!calibrateJoints(calJointsSecond, calSteps, outputMsg, "joint 6")) {
+        return false;
+    }
+
     outputMsg = String("JC") + "A" + calSteps[0] + "B" + calSteps[1] + "C" +
               calSteps[2] + "D" + calSteps[3] + "E" + calSteps[4] + "F" +
               calSteps[5];
@@ -778,7 +781,7 @@ void stateTRAJ() {
         Serial.println(msg);
       } else if (function == "JC") {
         String msg;
-        if (!doCalibrationRoutine2Stages(msg)) {
+        if (!doCalibrationRoutine3Stages(msg)) {
           for (int i = 0; i < NUM_JOINTS; ++i) {
             stepperJoints[i].setSpeed(0);
           }
