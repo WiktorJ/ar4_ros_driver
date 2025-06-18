@@ -81,7 +81,7 @@ def generate_launch_description():
             "-c",
             "/controller_manager",
             "--controller-manager-timeout",
-            "60",
+            "120",
             '--ros-args', '--log-level',
             LaunchConfiguration('log_level')
         ],
@@ -95,7 +95,7 @@ def generate_launch_description():
             "-c",
             "/controller_manager",
             "--controller-manager-timeout",
-            "60",
+            "120",
             '--ros-args', '--log-level',
             LaunchConfiguration('log_level')
         ],
@@ -119,7 +119,7 @@ def generate_launch_description():
             "-c",
             "/controller_manager",
             "--controller-manager-timeout",
-            "60",
+            "120",
             '--ros-args', '--log-level',
             LaunchConfiguration('log_level')
         ],

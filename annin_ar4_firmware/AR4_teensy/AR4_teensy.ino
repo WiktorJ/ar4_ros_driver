@@ -582,9 +582,9 @@ bool doCalibrationRoutine3Stages(String& outputMsg) {
         return false;
     }
 
-    int calJointsSecond[] = {0, 0, 0, 0, 0, 1};
+    int calJointsThird[] = {0, 0, 0, 0, 0, 1};
 
-    if (!calibrateJoints(calJointsSecond, calSteps, outputMsg, "joint 6")) {
+    if (!calibrateJoints(calJointsThird, calSteps, outputMsg, "joint 6")) {
         return false;
     }
 
